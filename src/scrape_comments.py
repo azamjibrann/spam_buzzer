@@ -2,7 +2,7 @@ from playwright.sync_api import sync_playwright
 import time
 import pandas as pd
 
-URL = "https://www.tiktok.com/@detikcom/video/7543556637768846597"
+URL = "https://www.tiktok.com/@magdaleneid/video/7542430696204176696"
 
 comments = []
 
@@ -53,4 +53,4 @@ df = pd.DataFrame(comments).drop_duplicates()
 print(df.head())
 print("Total komentar:", len(df))
 
-df.to_csv("tiktok_comments.csv", index=False, encoding="utf-8-sig")
+df.to_csv("tiktok_comments8.csv", index=False, encoding="utf-8-sig")
