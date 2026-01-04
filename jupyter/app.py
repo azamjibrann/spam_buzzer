@@ -99,22 +99,45 @@ if st.button("Deteksi"):
         # ======================
         # DECISION LOGIC (URUTAN WAJIB)
         # ======================
+        # 1️⃣ PROVOKASI KERAS (PALING BERBAHAYA)
+        if any(k in clean_rule for k in PROVOKASI):
+            st.error("🔥 PROVOKASI / HASUTAN KERAS")
 
-        # 1️⃣ OPINI / KRITIK KONSTRUKTIF
-        if any(k in clean_rule for k in OPINI_KONSTRUKTIF):
+        # 2️⃣ KATA KASAR / TOXIC
+        elif any(k in clean_rule for k in KATA_KASAR):
+            st.warning("⚠️ TOXIC / KATA KASAR")
+
+        # 3️⃣ SPAM PROMOSI
+        elif any(k in clean_rule for k in SPAM_PROMOSI):
+            st.error("🚨 SPAM PROMOSI")
+
+        # 4️⃣ OPINI / KRITIK KONSTRUKTIF
+        elif any(k in clean_rule for k in OPINI_KONSTRUKTIF):
             st.success("✅ BUKAN SPAM (opini / kritik)")
 
-        # 2️⃣ SPAM KERAS
-        elif any(k in clean_rule for k in SPAM_PROMOSI + KATA_KASAR + PROVOKASI):
-            st.error("🚨 SPAM")
-
-        # 3️⃣ MACHINE LEARNING
+        # 5️⃣ MACHINE LEARNING (FALLBACK)
         else:
             prob = model.predict_proba(vector)[0][1]
             if prob > 0.75:
-                st.error("🚨 SPAM (berdasarkan model)")
+                st.error("🚨 SPAM (berdasarkan model ML)")
             else:
                 st.success("✅ BUKAN SPAM")
+
+        # # 1️⃣ OPINI / KRITIK KONSTRUKTIF
+        # if any(k in clean_rule for k in OPINI_KONSTRUKTIF):
+        #     st.success("✅ BUKAN SPAM (opini / kritik)")
+
+        # # 2️⃣ SPAM KERAS
+        # elif any(k in clean_rule for k in SPAM_PROMOSI + KATA_KASAR + PROVOKASI):
+        #     st.error("🚨 SPAM")
+
+        # # 3️⃣ MACHINE LEARNING
+        # else:
+        #     prob = model.predict_proba(vector)[0][1]
+        #     if prob > 0.75:
+        #         st.error("🚨 SPAM (berdasarkan model)")
+        #     else:
+        #         st.success("✅ BUKAN SPAM")
 
         # ======================
         # DEBUG OUTPUT
