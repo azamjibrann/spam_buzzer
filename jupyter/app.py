@@ -23,8 +23,6 @@ stopword = StopWordRemoverFactory().create_stop_word_remover()
 # ======================
 # CLEANING FUNCTIONS
 # ======================
-
-# Untuk RULE-BASED (tanpa stemming & stopword)
 def clean_text_rule(text):
     text = text.lower()
     text = re.sub(r"http\S+|www\S+", "", text)
@@ -33,8 +31,6 @@ def clean_text_rule(text):
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
-
-# Untuk MACHINE LEARNING (HARUS SAMA DENGAN TRAINING)
 def clean_text_ml(text):
     text = clean_text_rule(text)
     text = stemmer.stem(text)
@@ -59,7 +55,7 @@ with open(os.path.join(BASE_DIR, "tfidf.pkl"), "rb") as f:
 SPAM_PROMOSI = [
     "klik", "link", "bio", "dm", "wa", "whatsapp",
     "gratis", "promo", "diskon", "jual",
-    "saldo", "cuan", "follow", "subscribe" ,"hubungi","web kami"
+    "saldo", "cuan", "follow", "subscribe", "hubungi"
 ]
 
 KATA_KASAR = [
@@ -74,9 +70,8 @@ PROVOKASI = [
 
 OPINI_KONSTRUKTIF = [
     "harusnya", "sebaiknya", "menurut saya",
-    "menurutku", "bermusyawarah", "musyawarah",
-    "kebijakan", "masyarakat", "pemerintah",
-    "presiden", "evaluasi", "solusi", "pendapat","menurut kita"
+    "menurutku", "musyawarah", "kebijakan",
+    "masyarakat", "pemerintah", "evaluasi", "solusi"
 ]
 
 # ======================
@@ -91,59 +86,75 @@ if st.button("Deteksi"):
     if comment.strip() == "":
         st.warning("Komentar tidak boleh kosong.")
     else:
-        # preprocessing
+        # ======================
+        # PREPROCESSING
+        # ======================
         clean_rule = clean_text_rule(comment)
         clean_ml = clean_text_ml(comment)
         vector = tfidf.transform([clean_ml])
 
         # ======================
-        # DECISION LOGIC (URUTAN WAJIB)
+        # DECISION LOGIC
         # ======================
-        # 1️⃣ PROVOKASI KERAS (PALING BERBAHAYA)
-        if any(k in clean_rule for k in PROVOKASI):
-            st.error("🔥 PROVOKASI / HASUTAN KERAS")
+        is_spam = False
+        label = ""
+        spam_category = None
 
-        # 2️⃣ KATA KASAR / TOXIC
+        # 1️⃣ PROVOKASI
+        if any(k in clean_rule for k in PROVOKASI):
+            is_spam = True
+            spam_category = "Provokasi / Hasutan Keras"
+            label = "🔥 SPAM - PROVOKASI"
+
+        # 2️⃣ TOXIC
         elif any(k in clean_rule for k in KATA_KASAR):
-            st.warning("⚠️ TOXIC / KATA KASAR")
+            is_spam = True
+            spam_category = "Toxic / Kata Kasar"
+            label = "⚠️ SPAM - TOXIC"
 
         # 3️⃣ SPAM PROMOSI
         elif any(k in clean_rule for k in SPAM_PROMOSI):
-            st.error("🚨 SPAM PROMOSI")
+            is_spam = True
+            spam_category = "Spam Promosi"
+            label = "🚨 SPAM - PROMOSI"
 
-        # 4️⃣ OPINI / KRITIK KONSTRUKTIF
+        # 4️⃣ OPINI KONSTRUKTIF
         elif any(k in clean_rule for k in OPINI_KONSTRUKTIF):
-            st.success("✅ BUKAN SPAM (opini / kritik)")
+            is_spam = False
+            label = "✅ BUKAN SPAM (opini / kritik)"
 
-        # 5️⃣ MACHINE LEARNING (FALLBACK)
+        # 5️⃣ MACHINE LEARNING
         else:
             prob = model.predict_proba(vector)[0][1]
             if prob > 0.75:
-                st.error("🚨 SPAM (berdasarkan model ML)")
+                is_spam = True
+                spam_category = "Spam (Prediksi Machine Learning)"
+                label = "🚨 SPAM (ML)"
             else:
-                st.success("✅ BUKAN SPAM")
-
-        # # 1️⃣ OPINI / KRITIK KONSTRUKTIF
-        # if any(k in clean_rule for k in OPINI_KONSTRUKTIF):
-        #     st.success("✅ BUKAN SPAM (opini / kritik)")
-
-        # # 2️⃣ SPAM KERAS
-        # elif any(k in clean_rule for k in SPAM_PROMOSI + KATA_KASAR + PROVOKASI):
-        #     st.error("🚨 SPAM")
-
-        # # 3️⃣ MACHINE LEARNING
-        # else:
-        #     prob = model.predict_proba(vector)[0][1]
-        #     if prob > 0.75:
-        #         st.error("🚨 SPAM (berdasarkan model)")
-        #     else:
-        #         st.success("✅ BUKAN SPAM")
+                is_spam = False
+                label = "✅ BUKAN SPAM"
 
         # ======================
-        # DEBUG OUTPUT
+        # OUTPUT
         # ======================
-        st.subheader("Preprocessing (Rule-Based)")
-        st.code(clean_rule)
+        st.subheader("Hasil Deteksi")
+        st.write(label)
 
-        st.subheader("Preprocessing (Machine Learning)")
-        st.code(clean_ml)
+        if is_spam:
+            st.error("Komentar terdeteksi sebagai SPAM")
+            st.write("📌 Kategori Spam:")
+            st.write(f"**{spam_category}**")
+            st.info("Komentar disembunyikan karena terdeteksi spam")
+        else:
+            st.success("Komentar NON-SPAM")
+            st.subheader("Komentar Ditampilkan")
+            st.write(comment)
+
+        # ======================
+        # DEBUG (OPSIONAL)
+        # ======================
+        # st.subheader("Preprocessing (Rule-Based)")
+        # st.code(clean_rule)
+
+        # st.subheader("Preprocessing (Machine Learning)")
+        # st.code(clean_ml)
